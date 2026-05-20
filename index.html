@@ -1936,12 +1936,9 @@ function calcQuickJudgeScore(mD,iD){
 function runInspect(){
   const cycleStart=performance.now();
   updateVisionStatus({trigger:'TRIGGER RUN',triggerClass:'run'});
-  if(masters.length===0||!inspectID){log('마스터 또는 검사 이미지 없음','ng');updateVisionStatus({trigger:'TRIGGER WAIT'});return;}
 
-  // 현재 편집 중인 설정 저장
-  if(activeMasterIdx<masters.length) saveCurrentToMaster(activeMasterIdx);
-
-  // 카메라 라이브 모드일 때 현재 프레임 캡처
+  // 카메라 라이브 모드일 때 먼저 현재 프레임을 검사 이미지로 캡처
+  // 기존에는 inspectID 체크가 먼저라서, 카메라 화면이 떠 있어도 "검사 이미지 없음"으로 빠졌음. 인간이 만든 if문의 잔혹함.
   if(liveMode&&!inspectFromFile){
     const vid=document.getElementById('vid');
     if(vid.srcObject&&vid.videoWidth){
@@ -1949,8 +1946,16 @@ function runInspect(){
       const sc=Math.min(W/vid.videoWidth,H/vid.videoHeight);
       iCtx.drawImage(vid,(W-vid.videoWidth*sc)/2,(H-vid.videoHeight*sc)/2,vid.videoWidth*sc,vid.videoHeight*sc);
       inspectID=iCtx.getImageData(0,0,W,H);
+      document.getElementById('ihint').style.display='none';
+      document.getElementById('i-info').textContent='카메라 현재 프레임';
     }
   }
+
+  if(masters.length===0){log('마스터 이미지 없음','ng');updateVisionStatus({trigger:'TRIGGER WAIT'});return;}
+  if(!inspectID){log('검사 이미지 없음','ng');updateVisionStatus({trigger:'TRIGGER WAIT'});return;}
+
+  // 현재 편집 중인 설정 저장
+  if(activeMasterIdx<masters.length) saveCurrentToMaster(activeMasterIdx);
 
   const pass=parseInt(document.getElementById('sens-main').value||70);
   const inspectPrepOnce=preprocess(inspectID.data);
